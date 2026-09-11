@@ -14,6 +14,10 @@ public class DocumentoController : Controller
         private static List<Models.DocumentoMetadado> _documentosMetadados = new List<Models.DocumentoMetadado>();
 
         private static int _nextId = 1;
+        [HttpPost("upload/{codigoCliente}")]
+        public async Task<ActionResult> AnexarArquivo(int CodigoCliente, IFormFile arquivo)
+        {
 
+        }
     }
 }
