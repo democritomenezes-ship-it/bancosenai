@@ -21,6 +21,12 @@ public class DocumentoController : Controller
             {
                 return BadRequest("Nenhum arquivo foi encontrado.");
             }
+            string pastaCliente = Path.Combine(_caminhoRaiz, CodigoCliente.ToString());
+
+             if(!Directory.Exists(pastaCliente))
+            {
+                Directory.CreateDirectory(pastaCliente);    
+            }
         }
     }
 }
