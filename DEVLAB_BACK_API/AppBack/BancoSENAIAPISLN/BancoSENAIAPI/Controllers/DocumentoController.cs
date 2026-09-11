@@ -27,6 +27,11 @@ public class DocumentoController : Controller
             {
                 Directory.CreateDirectory(pastaCliente);    
             }
+
+             string extensao =Path.GetExtension(arquivo.FileName);
+            string nameOriginal = Path.GetFileNameWithoutExtension(arquivo.FileName);
+            string novoNome = $"{CodigoCliente}_{nameOriginal}_{Guid.NewGuid()}{extensao}";
+            string caminhoFinal = Path.Combine(pastaCliente, novoNome);
         }
     }
 }
