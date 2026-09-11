@@ -17,7 +17,10 @@ public class DocumentoController : Controller
         [HttpPost("upload/{codigoCliente}")]
         public async Task<ActionResult> AnexarArquivo(int CodigoCliente, IFormFile arquivo)
         {
-
+            if(arquivo == null  || arquivo.Length == 0)
+            {
+                return BadRequest("Nenhum arquivo foi encontrado.");
+            }
         }
     }
 }
