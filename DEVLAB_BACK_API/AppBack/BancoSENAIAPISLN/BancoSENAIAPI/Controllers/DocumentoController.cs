@@ -1,11 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
 namespace BancoSENAIAPI.Controllers
-{ 
-[ApiController]
-    [Route("api/v1/[Controller]")]
-public class DocumentoController : Controller
 {
+    [ApiController]
+    [Route("api/v1/[controller]")]
+    public class DocumentoController : Controller
+    {
+
         private readonly string _caminhoRaiz = Path.Combine(
             Directory.GetCurrentDirectory(),
             "ClienteArquivos"
@@ -14,28 +15,57 @@ public class DocumentoController : Controller
         private static List<Models.DocumentoMetadado> _documentosMetadados = new List<Models.DocumentoMetadado>();
 
         private static int _nextId = 1;
+
         [HttpPost("upload/{codigoCliente}")]
-        public async Task<ActionResult> AnexarArquivo(int CodigoCliente, IFormFile arquivo)
+        public async Task<IActionResult> AnexarArquivo(int codigoCliente, IFormFile arquivo)
         {
-            if(arquivo == null  || arquivo.Length == 0)
+            if (arquivo == null || arquivo.Length == 0)
             {
-                return BadRequest("Nenhum arquivo foi encontrado.");
-            }
-            string pastaCliente = Path.Combine(_caminhoRaiz, CodigoCliente.ToString());
-
-             if(!Directory.Exists(pastaCliente))
-            {
-                Directory.CreateDirectory(pastaCliente);    
+                return BadRequest("Nenhum arquivo foi enviado.");
             }
 
-             string extensao =Path.GetExtension(arquivo.FileName);
-            string nameOriginal = Path.GetFileNameWithoutExtension(arquivo.FileName);
-            string novoNome = $"{CodigoCliente}_{nameOriginal}_{Guid.NewGuid()}{extensao}";
+            string pastaCliente = Path.Combine(_caminhoRaiz, codigoCliente.ToString());
+
+            if (!Directory.Exists(pastaCliente))
+            {
+                Directory.CreateDirectory(pastaCliente);
+            }
+
+            string extensao = Path.GetExtension(arquivo.FileName);
+            string nomeOriginal = Path.GetFileNameWithoutExtension(arquivo.FileName);
+            string novoNome = $"{codigoCliente}{nomeOriginal}{Guid.NewGuid()}{extensao}";
             string caminhoFinal = Path.Combine(pastaCliente, novoNome);
+
             using (var stream = new FileStream(caminhoFinal, FileMode.Create))
             {
                 await arquivo.CopyToAsync(stream);
             }
+
+            var documentoMetadados = new Models.DocumentoMetadado
+            {
+                Id = _nextId++,
+                Name = nomeOriginal,
+                Extensao = extensao,
+                Caminho = caminhoFinal,
+                CodigoCliente = codigoCliente
+            };
+
+            _documentosMetadados.Add(documentoMetadados);
+
+            return Ok(new { mensagem = "Documento anexado com sucesso", arquivoSalvo = novoNome });
+        }
+
+        [HttpGet("listar/{codigoCliente}")]
+        public IActionResult ListarPorCliente(int codigoCliente)
+        {
+            var documentos = _documentosMetadados.Where(d => d.CodigoCliente == codigoCliente).ToList();
+
+            if (!documentos.Any())
+            {
+                return NotFound(new { mensagem = "Nenhum documento encontrado." });
+            }
+
+            return Ok(documentos);
         }
     }
 }
