@@ -21,7 +21,7 @@ namespace BancoSENAIAPI.Controllers
             int codigoCliente,
             IFormFile arquivo)
         {
-            // Validação de arquivo vazio ou inexistente
+            
             if (arquivo == null || arquivo.Length == 0)
             {
                 return BadRequest(new
@@ -30,7 +30,7 @@ namespace BancoSENAIAPI.Controllers
                 });
             }
 
-            // R06F - Limite máximo de 2 MB
+            
             const long limiteTamanho = 2 * 1024 * 1024;
 
             if (arquivo.Length > limiteTamanho)
@@ -41,7 +41,7 @@ namespace BancoSENAIAPI.Controllers
                 });
             }
 
-            // R06G - Extensões permitidas
+            
             string extensao = Path.GetExtension(arquivo.FileName).ToLowerInvariant();
 
             string[] extensoesPermitidas =
