@@ -1,5 +1,7 @@
-﻿using BancoSENAIAPI.Models;
+﻿using BancoSENAIAPI.Data;
+using BancoSENAIAPI.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace BancoSENAIAPI.Controllers
 {
@@ -7,44 +9,49 @@ namespace BancoSENAIAPI.Controllers
     [Route("api/v1/[controller]")]
     public class ClienteController : ControllerBase
     {
-        private List<Cliente> _clientes = new List<Cliente>
+        private AppDbContext _context;
+        public ClienteController(AppDbContext context)
         {
-            new Cliente { CodigoCLiente = 1, NomeCliente = "João Pedro Silva", CPF = "12345678901", Sexo = "Masculino", Endereco = "Rua das Flores, 120", Cidade = "Aracaju", Estado = "SE", Saldo = 2500, NumeroAgencia = 1 },
-            new Cliente { CodigoCLiente = 2, NomeCliente = "Maria Eduarda Santos", CPF = "23456789012", Sexo = "Feminino", Endereco = "Avenida Beira Mar, 450", Cidade = "Aracaju", Estado = "SE", Saldo = 5800, NumeroAgencia = 2 },
-            new Cliente { CodigoCLiente = 3, NomeCliente = "Lucas Almeida Costa", CPF = "34567890123", Sexo = "Masculino", Endereco = "Rua São José, 85", Cidade = "Itabaiana", Estado = "SE", Saldo = 1200, NumeroAgencia = 3 }
-        };
-        private int novoCodigoCliente = 0;
+            _context = context;
+        }
+
         [HttpGet]
-        public IActionResult ListarTodas()
+        public async Task<IActionResult> ListarTodas()
         {
-            return Ok(_clientes);
+            var clientes = await _context.Cliente.ToListAsync();
+            return Ok(clientes);
         }
 
         [HttpGet("{codigo}")]
-        public IActionResult ConsultarPorCodigo(int codigo)
+        public async Task<IActionResult> ConsultarPorCodigo(int codigo)
         {
-            var carteira = _clientes.FirstOrDefault(a => a.CodigoCLiente == codigo);
+            var carteira = await _context.Cliente.FirstOrDefaultAsync(a => a.CodigoCLiente == codigo);
 
             if (carteira == null)
-                return NotFound(new { message = "Nenhum dado encontrado." });
+                return NotFound(new { message = "Cliente não encontrada." }); // Status 404 [6, 7]
 
-            return Ok(carteira);
+            return Ok(carteira); // Status 200 OK [6, 7]
         }
 
         [HttpPost]
-        public IActionResult Cadastrar([FromBody] Cliente novoCliente)
+        public async Task<IActionResult> Cadastrar([FromBody] Cliente novoCliente)
         {
-            novoCodigoCliente++;
-            Cliente createCliente = new Cliente { CodigoCLiente = novoCodigoCliente, NomeCliente = novoCliente.NomeCliente, CPF = novoCliente.CPF, Sexo = novoCliente.Sexo, Endereco = novoCliente.Endereco, Cidade = novoCliente.Cidade, Estado = novoCliente.Estado, Saldo = novoCliente.Saldo, NumeroAgencia = novoCliente.NumeroAgencia };
-            _clientes.Add(createCliente);
 
-            return Created("", createCliente);
+            if (_context.Cliente.Any(c => c.CPF == novoCliente.CPF))
+            {
+                return BadRequest(new { message = "CPF já cadastrado." }); // Status 400 Bad Request [6]
+            }
+
+            _context.Cliente.Add(novoCliente);
+            await _context.SaveChangesAsync();
+            // Retorna Status 201 Created conforme boas práticas REST [6, 8]
+            return Created("", novoCliente);
         }
 
         [HttpPut("{codigo}")]
-        public IActionResult Alterar(int codigo, [FromBody] Cliente clienteAtualizar)
+        public async Task<IActionResult> Alterar(int codigo, [FromBody] Cliente clienteAtualizar)
         {
-            var clienteExiste = _clientes.FirstOrDefault(a => a.CodigoCLiente == codigo);
+            var clienteExiste = await _context.Cliente.FirstOrDefaultAsync(a => a.CodigoCLiente == codigo);
 
             if (clienteExiste == null) return NotFound();
 
@@ -57,19 +64,21 @@ namespace BancoSENAIAPI.Controllers
             clienteExiste.Saldo = clienteAtualizar.Saldo;
             clienteExiste.NumeroAgencia = clienteAtualizar.NumeroAgencia;
 
+            await _context.SaveChangesAsync();
+            // Retorna Status 204 No Content para atualizações bem-sucedidas [6, 9]
             return NoContent();
         }
 
         [HttpDelete("{codigo}")]
-        public IActionResult Excluir(int codigo)
+        public async Task<IActionResult> Excluir(int codigo)
         {
-            var cliente = _clientes.FirstOrDefault(a => a.CodigoCLiente == codigo);
+            var cliente = await _context.Cliente.FirstOrDefaultAsync(a => a.CodigoCLiente == codigo);
 
             if (cliente == null) return NotFound();
 
-            _clientes.Remove(cliente);
-            return Ok(new { message = "Dados excluidos com sucesso." });
-
+            _context.Cliente.Remove(cliente);
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Cliente excluída com sucesso." }); // Status 200 [6]
         }
     }
 }

@@ -9,6 +9,9 @@ namespace BancoSENAIAPI.Data
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
         }
-        public DbSet<Agencia> Agencias => Set<Agencia>();
+        public DbSet<Agencia> Agencia => Set<Agencia>();
+        public DbSet<Carteira> Carteira => Set<Carteira>();
+        public DbSet<DocumentoMetadado> Documento => Set<DocumentoMetadado>();
+        public DbSet<Cliente> Cliente => Set<Cliente>();
     }
 }

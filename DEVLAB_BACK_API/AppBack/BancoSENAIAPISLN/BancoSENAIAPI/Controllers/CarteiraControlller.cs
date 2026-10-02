@@ -1,6 +1,7 @@
-﻿using BancoSENAIAPI.Models;
+﻿using BancoSENAIAPI.Data;
+using BancoSENAIAPI.Models;
 using Microsoft.AspNetCore.Mvc;
-using System.Runtime.CompilerServices;
+using Microsoft.EntityFrameworkCore;
 
 namespace BancoSENAIAPI.Controllers
 {
@@ -8,25 +9,24 @@ namespace BancoSENAIAPI.Controllers
     [Route("api/v1/[controller]")]
     public class CarteiraController : ControllerBase
     {
-        private List<Carteira> _carteira = new List<Carteira>
+        private AppDbContext _context;
+        public CarteiraController(AppDbContext context)
         {
-            new Carteira { NumeroCarteira = 1, NomeCarteira = "Agro", ApetiteCarteira = 10000 },
-            new Carteira { NumeroCarteira = 2, NomeCarteira = "Tecnologia", ApetiteCarteira = 50000 },
-            new Carteira { NumeroCarteira = 3, NomeCarteira = "Renda Fixa", ApetiteCarteira = 25000 }
-        };
-
+            _context = context;
+        }
         [HttpGet]
-        public IActionResult ListarTodas()
+        public async Task<IActionResult> ListarTodas()
         {
-            return Ok(_carteira);
+            var carteiras = await _context.Carteira.ToListAsync();
+            return Ok(carteiras);
         }
 
         [HttpPost]
-        public IActionResult Cadastrar([FromBody] Carteira novaCarteira)
+        public async Task<IActionResult> Cadastrar([FromBody] Carteira novaCarteira)
         {
 
-            if (_carteira.Any(a => a.NumeroCarteira == novaCarteira.NumeroCarteira))
-                return BadRequest(new { message = "Este número de agência já existe." });
+            if (await _context.Carteira.AnyAsync(a => a.NumeroCarteira == novaCarteira.NumeroCarteira))
+                return BadRequest(new { message = "Este número de Carteira já existe." });
 
             if (string.IsNullOrWhiteSpace(novaCarteira.NomeCarteira))
             {
@@ -35,46 +35,51 @@ namespace BancoSENAIAPI.Controllers
 
             if (novaCarteira.ApetiteCarteira == 0)
             {
-                novaCarteira.ApetiteCarteira = 10000;
+                novaCarteira.ApetiteCarteira = 10000; // Define o valor padrão de ApetiteCarteira como 10000
             }
 
-            _carteira.Add(novaCarteira);
+            _context.Carteira.Add(novaCarteira);
+            await _context.SaveChangesAsync();
+            // Retorna Status 201 Created conforme boas práticas REST [6, 8]
             return Created("", novaCarteira);
         }
 
         [HttpGet("{codigo}")]
-        public IActionResult ConsultarPorCodigo(int codigo)
+        public async Task<IActionResult> ConsultarPorCodigo(int codigo)
         {
-            var carteira = _carteira.FirstOrDefault(a => a.NumeroCarteira == codigo);
+            var carteira = await _context.Carteira.FirstOrDefaultAsync(a => a.NumeroCarteira == codigo);
 
             if (carteira == null)
-                return NotFound(new { message = "Agência não encontrada." });
+                return NotFound(new { message = "Carteira não encontrada." }); // Status 404 [6, 7]
 
-            return Ok(carteira);
+            return Ok(carteira); // Status 200 OK [6, 7]
         }
 
         [HttpPut("{codigo}")]
-        public IActionResult Alterar(int codigo, [FromBody] Carteira carteiraAtualizada)
+        public async Task<IActionResult> Alterar(int codigo, [FromBody] Carteira carteiraAtualizada)
         {
-            var carteiraExistente = _carteira.FirstOrDefault(a => a.NumeroCarteira == codigo);
+            var carteiraExistente = await _context.Carteira.FirstOrDefaultAsync(a => a.NumeroCarteira == codigo);
 
             if (carteiraExistente == null) return NotFound();
 
             carteiraExistente.ApetiteCarteira = carteiraAtualizada.ApetiteCarteira;
             carteiraExistente.NomeCarteira = carteiraAtualizada.NomeCarteira;
 
+            await _context.SaveChangesAsync();
+            // Retorna Status 204 No Content para atualizações bem-sucedidas [6, 9]
             return NoContent();
         }
 
         [HttpDelete("{codigo}")]
-        public IActionResult Excluir(int codigo)
+        public async Task<IActionResult> Excluir(int codigo)
         {
-            var carteira = _carteira.FirstOrDefault(a => a.NumeroCarteira == codigo);
+            var carteira = await _context.Carteira.FirstOrDefaultAsync(a => a.NumeroCarteira == codigo);
 
             if (carteira == null) return NotFound();
 
-            _carteira.Remove(carteira);
-            return Ok(new { message = "Agência excluída com sucesso." });
+            _context.Carteira.Remove(carteira);
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Carteira excluída com sucesso." }); // Status 200 [6]
         }
     }
 }
